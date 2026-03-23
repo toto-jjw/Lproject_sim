@@ -1,0 +1,345 @@
+# Lproject_sim/config/simulation_config.yaml
+# ============================================================================
+# Lunar Rover Simulation Configuration
+# ============================================================================
+# 이 파일에서 시뮬레이션의 모든 주요 파라미터를 관리합니다.
+#
+# Robot Control:
+#   ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r cmd_vel:=/husky_1/cmd_vel
+#
+# DEM Save: Press 'P' key in Isaac Sim viewport
+# ============================================================================
+
+simulation:
+  headless: false
+  dt: 0.033  # 30Hz (안정적인 물리 시뮬레이션)
+  
+  # ROS 2 Bridge Type:
+  #   "omnigraph" - USD 내장 OmniGraph 사용 (권장)
+  #   "native"    - Python rclpy 직접 사용
+  ros_bridge_type: "omnigraph"
+  
+  renderer:
+    name: ""
+    lens_flare:
+      enabled: false
+      scale: 2.0
+      blades: 5
+    motion_blur:
+      enabled: false
+    dlss:
+      enabled: false
+      
+  physics_scene:
+    gravity: [0.0, 0.0, -1.62]  # 달 중력 (m/s²)
+
+assets:     
+  material_path: "assets/Textures/LunarRegolith8k.mdl"
+  robots_dir: "assets/USD_Assets/robots"
+  # selected_texture: "LunarRegolith8k" # Optional: Specify folder name to force texture
+
+terrain:
+  type: "procedural" # Options: "procedural", "real_data", "hybrid"
+  x_size: 100
+  y_size: 100
+  resolution: 0.05
+  src_resolution: 0.1
+  z_scale: 4.0 #4.0
+  seed: 1235
+  
+  # 외곽 지형 설정 (저해상도 확장 + 랜덤 언덕 + 크레이터)
+  outer_terrain:
+    enabled: true
+    size_multiplier: 5.0      # 전체 크기 배율 (메인 지형의 5배 = 500x500m)
+    resolution: 0.5           # 저해상도 (메인 0.05m의 10배)
+    rim_height: 20.0          # 랜덤 언덕 최대 높이 (m)
+    rim_width_ratio: 0.40     # 언덕 개수 비율 (높을수록 더 많은 언덕)
+    blend_width: 8.0          # 메인-외곽 경계 블렌딩 폭 (m)
+    num_craters: 10           # 대형 크레이터 개수 (반경 20~60m)
+    hill_radius_min: 15.0     # 언덕 최소 반경 (m)
+    hill_radius_max: 50.0     # 언덕 최대 반경 (m)
+    hill_smoothness: 2.0      # 경사 완만도 (낮을수록 완만)
+    
+    # Horizon Plane (태양 차단용 초대형 평면)
+    horizon_plane:
+      enabled: true
+      size_multiplier: 5.0   # 외곽 지형의 20배 (약 10km x 10km)
+      height_offset: -3.0     # 지형보다 5m 아래
+      resolution: 100.0       # 매우 저해상도 (100m/cell)
+      hide_visual: false      # true: 렌더링 안함 (collision만), false: 지형 재질 적용
+  
+  files:
+    dem: "assets/Terrains/Lunalab/Terrain_lidar01/dem.npy"
+    crop_center_meters: [0.0, 0.0]
+
+  hybrid:
+    detail_strength: 0.0 # Height of the procedural detail layer
+    detail_scale: 10.0    # Frequency of detail (Higher = smaller/finer features)
+
+  crater_profiles_path: "assets/Terrains/crater_spline_profiles.pkl"
+  rock_assets_dir: "assets/USD_Assets/rocks/lunar_rocks"
+  num_rocks: 150 #50
+
+environment:
+  # Terramechanics (바퀴-지형 상호작용 시뮬레이션)
+  terramechanics:
+    enabled: false
+    
+  # Terrain Deformation (바퀴 자국 생성)
+  deformation:
+    enabled: false
+    # Hybrid mode (권장): ribbon mesh로 시각적 바퀴자국 + CPU DEM만 업데이트
+    # use_track_renderer: true → 리본 메시 시각효과 (빠름)
+    # deform_dem: true → CPU DEM 배열만 업데이트 (get_heights 정확도)
+    # update_mesh: false → USD 메시 수정 안함 (성능 핵심)
+    use_track_renderer: true
+    deform_dem: true           # CPU DEM 배열 업데이트 (terramechanics용)
+    update_mesh: false         # true면 USD 메시도 수정 (매우 느림!)
+    
+    # 바퀴자국 렌더러 설정
+    track_renderer:
+      track_width: 0.1        # 바퀴자국 폭 (m)
+      max_points: 500         # 바퀴당 최대 추적 포인트 수
+      min_distance: 0.05      # 새 포인트 추가 최소 거리 (m)
+      height_offset: 0.002    # 지형 위 오프셋 (Z-fighting 방지)
+    
+    # DEM 변형 설정
+    dem_update_interval: 15   # DEM 업데이트 주기 (프레임)
+    visual_scale: 5.0         # 침하량 시각적 확대 비율
+    
+  # Dust Simulation (먼지 효과)
+  dust:
+    enabled: false
+  
+  # Thermal Model (열 모델링)
+  # 달 표면 로버의 온도 변화를 시뮬레이션합니다.
+  # enabled: false로 설정 시 static_temperature 값으로 고정됩니다.
+  thermal_model:
+    enabled: true              # true: 동적 온도 계산, false: 고정 온도
+    static_temperature: 20.0    # 고정 온도 (°C, enabled=false일 때 사용)
+    min_temp: -173.0            # 달 야간 표면온도 (°C)
+    max_temp: 127.0             # 달 주간 표면온도 (°C)
+    time_constant: 600.0        # 열적 시정수 (초, 목표 온도까지 63% 도달 시간)
+    measurement_noise_std: 0.5  # 온도 측정 노이즈 (°C)
+  
+  # Camera Noise (센서 노이즈 시뮬레이션)
+  # ROS2 노드로 이미지 토픽에 노이즈 추가
+  # 실행: ros2 run <pkg> noise_node --ros-args -p config_file:=<path>
+  camera_noise:
+    enabled: true
+    output_suffix: "_noisy"   # 출력 토픽 접미사 (예: /stereo/left/rgb -> /stereo/left/rgb_noisy)
+    
+    # 출력 해상도 설정
+    # null 또는 생략: 원본 해상도 유지
+    # [width, height]: 지정된 해상도로 리사이즈 (예: [640, 480])
+    # scale (0.0-1.0): 비율로 축소 (예: 0.5 = 50%)
+    output_resolution: [512, 512]     # 예: [1280, 720], 0.5, 또는 null 
+    interpolation: "INTER_LINEAR"  # 보간법: INTER_NEAREST, INTER_LINEAR, INTER_AREA, INTER_CUBIC
+    
+    # 로버 센서 온도 토픽 (실시간 Dark Current 계산용)
+    # 토픽이 없으면 physical.dark_current.sensor_temperature 값 사용
+    temperature_topic: "/rover/sensor_temperature"  # Float64 메시지 (K 또는 °C)
+    
+    # 대상 토픽 설정
+    topics:
+      rgb:
+        - "/stereo/left/rgb"
+        - "/stereo/right/rgb"
+      # depth: 별도 노드에서 처리하거나 필요시 추가
+      # depth:
+      #   - "/front_camera/depth/depth"
+    
+    # Gaussian Noise (가우시안 노이즈)
+    gaussian:
+      enabled: true
+      mean: 0.0               # 평균 (보통 0)
+      std: 5.0                # 표준편차 (0-255 스케일, 5-15 권장)
+    
+    # Salt & Pepper Noise (점 노이즈)
+    salt_pepper:
+      enabled: false
+      prob: 0.005             # 노이즈 확률 (0.001 = 0.1%)
+    
+    # Exposure Variation (노출 변화)
+    exposure:
+      enabled: true
+      variation: 0.02          # 밝기 변화 비율 (±2%)
+    
+    # Depth 이미지 전용 노이즈
+    depth:
+      gaussian_std: 0.01      # 거리 노이즈 표준편차 (m 단위)
+      dropout_prob: 0.001     # 깊이 값 손실 확률
+    
+    # =========================================================================
+    # Physical Noise Model (물리 기반 센서 노이즈)
+    # Moseley et al. CVPR 2021 "Extreme Low-Light Environment-Driven 
+    # Image Denoising Over Permanently Shadowed Lunar Regions" 기반
+    # =========================================================================
+    # 달 극지방 영구 그림자 영역(PSR)의 극저조도 환경 시뮬레이션
+    # enabled: true로 설정 시 위의 gaussian/salt_pepper/exposure 대신 사용됨
+    physical:
+      enabled: true                # true로 설정 시 물리 모델 활성화
+      
+      # --- 센서 특성 ---
+      quantum_efficiency: 0.8       # 양자 효율 (0-1, 광자→전자 변환율)
+      analog_gain: 1.0              # 아날로그 게인 (증폭)
+      full_well_capacity: 50000     # 풀웰 용량 (전자, 센서 픽셀당 최대 전자 수)
+      bit_depth: 12                  # ADC 비트 깊이 (8, 10, 12, 14)
+      
+      # --- Shot Noise (광자 노이즈) ---
+      # 광자 도착의 통계적 변동 (포아송 분포)
+      # 저조도에서 매우 중요 - SNR = sqrt(signal)
+      shot_noise:
+        enabled: true
+      
+      # --- Read Noise (읽기 노이즈) ---
+      # 전자 회로에서 발생하는 가우시안 노이즈
+      # 저조도에서 shot noise와 함께 주요 노이즈원
+      read_noise:
+        std: 5.0                    # 표준편차 (전자 단위, 1-20 범위)
+      
+      # --- Dark Current (암전류) ---
+      # 온도에 따른 열적 전자 생성
+      dark_current:
+        enabled: true
+        rate: 0.01                   # 기본율 (e-/pixel/sec, 상온 기준)
+        exposure_time: 0.033        # 노출 시간 (초, 30fps = 0.033)
+        sensor_temperature: 293.0   # 센서 온도 (K, 293K = 20°C)
+      
+      # --- Fixed Pattern Noise (FPN) ---
+      # 픽셀별 고정 오프셋 (제조 결함)
+      # 프레임간 일정하게 유지됨
+      fpn:
+        enabled: true
+        strength: 0.01             # 강도 (풀웰 대비 %, 0.01-0.05) / 0.02, 0.01, 120도, 밝기 100 조건에서 주행가능
+      
+      # --- PRNU (Photo Response Non-Uniformity) ---
+      # 픽셀별 감도 편차 (제조 공차)
+      # 밝은 영역에서 더 눈에 띔
+      prnu:
+        enabled: true
+        strength: 0.005             # 강도 (%, 0.005-0.02)
+    
+  # Communication Latency (지구-달 통신 지연 시뮬레이션)
+  latency:
+    enabled: false
+    delay_seconds: 1.3      # 통신 지연 시간 (초)
+    dropout_rate: 0.05      # 패킷 손실 확률 (0~1)
+    
+  # HUD Display
+  hud:
+    enabled: true
+    
+  # Synthetic Data Generation (SDG)
+  sdg:
+    enabled: false
+    interval: 100           # 캡처 간격 (프레임)
+    output_dir: "data/sdg_output"
+
+  # Nav2 Integration
+  nav2:
+    enabled: true
+    slam: false              # true: slam_toolbox 사용, false: static map
+
+  # TF Publishing (map frame)
+  # Isaac Sim OmniGraph가 odom→base_footprint를 발행하는데,
+  # 이 옵션을 켜면 Python에서 map→base_footprint를 추가로 발행합니다.
+  # map 프레임 = 시뮬레이션 월드 좌표계 (절대 좌표)
+  publish_map_tf: true
+
+  # DEM Export Settings (Ground Truth 저장 설정)
+  dem_export:
+    pointcloud_subsample: 4     # PLY 포인트 서브샘플링 (1=전체, 2=1/4, 4=1/16, 10=1/100 점)
+    max_rock_points_per_rock: null  # Rock당 최대 점 개수 (null=전체)
+
+
+
+# ============================================================================
+# Stellar Engine (천체 위치 계산)
+# ============================================================================
+# skyfield 기반으로 달 표면에서 태양/지구 위치를 물리적으로 계산합니다.
+# enabled: true면 아래 scene.sun_light의 elevation/azimuth를 무시하고
+# 위도/경도/시간에 따라 자동으로 태양 위치가 결정됩니다.
+stellar:
+  enabled: false                 # 천체 엔진 활성화
+  
+  # 관측자 위치 (달 표면 좌표)
+  latitude: -80.0                 # 위도 (도) - 남극: -90, 적도: 0, 북극: 90
+  longitude: -45.0                 # 경도 (도) - 서쪽: -180~0, 동쪽: 0~180
+  
+  # 시뮬레이션 시작 시간 (UTC)
+  # 참고: 달의 낮/밤 사이클은 약 29.5일
+  # lat=-26.3, lon=46.8 에서 2024년 5월 13~26일이 낮 시간대
+  start_date:
+    year: 2030
+    month: 8  #2, 8
+    day: 17 #17                    # 정오 근처 (태양 고도 최대)
+    hour: 0
+    minute: 0
+    second: 0
+  
+  # 시간 설정
+  time_scale: 1.0                 # 시간 배속 (1.0=실시간, 60=1분/초, 3600=1시간/초)
+  update_interval: 1.0            # 천체 위치 업데이트 간격 (초)
+  auto_update: true               # 매 프레임 자동 업데이트
+  
+  # Ephemeris 파일 경로 (비어있으면 자동 다운로드)
+  ephemeris_dir: "assets/Ephemeris"
+
+scene:
+  sun_light:
+    # 달 표면 태양 조명 설정
+    # Isaac Sim DistantLight는 고도각에 따른 조도 감쇠를 자동 처리함
+    # intensity는 수직 입사 시 기준값, 실제 지면 조도는 cos(입사각)에 따라 감소
+    # 추천값: 500~2000 (시각적 밝기 기준)
+    intensity: 10000.0           # DistantLight intensity (직접 설정)
+    color_temperature: 5778.0   # 태양 유효 온도 (K)
+    # stellar.enabled=true일 때 아래 값들은 초기값으로만 사용되고, 이후 자동 계산됨
+    elevation: 10.0             # 초기 고도 (stellar 비활성 시 고정값)
+    azimuth: 90.0              # 초기 방위각 (stellar 비활성 시 고정값)
+
+  dome_light:
+    enabled: true            # 그림자 영역 산란광 근사 (Isaac Sim 자체 GI 활용을 위해 비활성화)
+    shadow_ratio: 0.00001         # 그림자 밝기 / 비그림자 밝기 목표 비율 (0.2 = 20%)
+    color: [1.0, 1.0, 1.0]    # 중성백색 (그림자 영역 조명용)
+  
+  stars:
+    enabled: true
+    count: 1000               # 별 개수 (emissive sphere 개수)
+    # Emissive sphere 방식: 조명 효과 없이 시각적으로만 보임
+    min_intensity: 10        # 최소 emissive 밝기
+    max_intensity: 50       # 최대 emissive 밝기
+    min_angle: 0.01          # 최소 별 각지름 (도)
+    max_angle: 0.05           # 최대 별 각지름 (도)
+    distance: 1000.0          # 별 배치 거리 (m) - terrain보다 멀리
+    seed: 42                 # 무작위 시드 (재현성)
+
+robots:
+  - name: "Husky_1"
+    prim_path: "/World/Husky_1"
+    #usd_path: "assets/USD_Assets/robots/ros2_jackal_PhysX_vlp16_stereo.usd" # [Selection] Best for Visual SLAM (Stereo + IMU)
+
+    usd_path: "assets/USD_Assets/robots/ros2_husky_all.usd"
+    position: [0.0, 0.0, 2.0]  # odom 원점의 월드 좌표 (terrain_snap=false일 때 고정)
+    orientation: [0.9238795, 0.0, 0.0, 0.3826834]
+    
+    # terrain_snap: odom 프레임을 고정하려면 false로 설정
+    #   true  = 로봇 Z를 지형 높이에 맞춤 (기본값, odom 변동)
+    #   false = config의 position[2] 값 그대로 사용 (odom 고정)
+    # 주의: false일 때 position[2]가 지형보다 낮으면 로봇이 떨어짐!
+    terrain_snap: false
+    
+    sensors:
+      sun_sensor:
+        enabled: true
+        position: [0.0, 0.0, 0.85]
+        orientation: [1.0, 0.0, 0.0, 0.0]
+    components:
+      solar_panel:
+        enabled: true
+        position: [0.0, 0.0, 0.6]
+      energy_manager:
+        enabled: true
+        thermal_mass: 1000.0
+        initial_temp: 20.0
+
