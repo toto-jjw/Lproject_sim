@@ -26,6 +26,11 @@ Lproject_sim is an Isaac Sim-based simulation platform for lunar surface rover o
 
 Lproject_sim generates realistic lunar surface environments and simulates a rover equipped with stereo cameras, sun sensors, solar panels, and full energy/thermal subsystems. The simulation publishes all sensor data over ROS 2 topics, enabling downstream visual SLAM, depth estimation, and autonomous navigation stacks to operate as if connected to real hardware.
 
+
+<div align="center">
+  <video src="https://private-user-images.githubusercontent.com/191950039/567748976-971185f6-6408-4b7c-9766-06172e7187b0.mp4" width="100%" controls></video>
+</div>
+
 | Feature | Description |
 |---------|-------------|
 | **Terrain** | Procedural DEM with craters, Perlin noise, rock scattering, and outer terrain with mountain rims |
