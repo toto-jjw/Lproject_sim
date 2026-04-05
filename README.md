@@ -153,6 +153,29 @@ graph TD
 
 ---
 
+## Assets Download
+
+The `assets/` folder (~3 GB) is hosted on Google Drive and is not included in this repository.
+
+**Download (one-time setup):**
+
+```bash
+bash scripts/download_assets.sh
+```
+
+This script installs `gdown` (if needed) and downloads the following into `assets/`:
+
+| Folder | Size | Contents |
+|--------|------|----------|
+| `USD_Assets/` | ~1.2 GB | Rock & rover USD models |
+| `Textures/` | ~1.1 GB | Lunar regolith MDL materials |
+| `Terrains/` | ~55 MB | DEM data & crater profiles |
+| `Ephemeris/` | ~18 MB | Skyfield ephemeris files |
+
+> Google Drive folder: https://drive.google.com/open?id=1H0jR8eA9DT5elJcx0JrdOfkLZXecnYl0
+
+---
+
 ## Prerequisites
 
 ### Hardware
